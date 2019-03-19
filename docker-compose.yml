@@ -1,0 +1,178 @@
+version: '3'
+services:
+#  nginx:
+#    build: ./Docker/nginx
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#    networks:
+#      - appnet
+  db_customers:
+    image: postgres:9.6
+    environment:
+      POSTGRES_DB: encinco
+      POSTGRES_USER: encinco
+      POSTGRES_PASSWORD: encinco
+#    volumes:
+#     - backoffice-data:/var/lib/postgresql/data
+    ports:
+     - "5432:5432"
+    networks:
+     - appnet
+#  mail:
+#    image: mailhog/mailhog:latest
+#    ports:
+#     - "8025:8025"
+  zookeeper:
+    image: confluentinc/cp-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - appnet
+#    volumes:
+#      - zk-data:/var/lib/zookeeper/data
+#      - zk-log:/var/lib/zookeeper/log
+  kafka:
+    image: confluentinc/cp-kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    networks:
+      - appnet
+#    volumes:
+#      - kafka-data:/var/lib/kafka/data
+  kafka-api:
+    image: confluentinc/cp-kafka-rest
+    environment:
+      KAFKA_REST_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_REST_LISTENERS: "http://kafka-api:8082"
+      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KAFKA_REST_HOST_NAME: "kafka-api"
+    ports:
+      - "8082:8082"
+    networks:
+      - appnet
+#  customers-jdbc-sink:
+#    image: confluentinc/cp-kafka-connect
+#    depends_on:
+#     - zookeeper
+#   environment:
+#      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+#      CONNECT_REST_PORT: 8082
+#      CONNECT_GROUP_ID: "customersPostgres"
+#      CONNECT_CONFIG_STORAGE_TOPIC: "customers-sink-config"
+#      CONNECT_OFFSET_STORAGE_TOPIC: "customers-sink-offsets"
+#      CONNECT_STATUS_STORAGE_TOPIC: "customers-sink-status"
+#      CONNECT_REST_ADVERTISED_HOST_NAME: "customers-jdbc-sink"
+#      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+##    ports:
+##      - "8082:8082"
+#    volumes:
+#      - ./config/jdbc:/sink:ro
+#      - ./config/schema:/schema:ro
+#    command: connect-standalone schema/avro.properties sink/customers-sink.properties
+#    networks:
+#      - appnet
+#  customers-elastic-sink:
+#    image: confluentinc/cp-kafka-connect
+#    depends_on:
+#      - zookeeper
+#    environment:
+#      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+#      CONNECT_REST_PORT: 8082
+#      CONNECT_GROUP_ID: "customers-elastic"
+#      CONNECT_CONFIG_STORAGE_TOPIC: "customers-elastic-sink-config"
+#      CONNECT_OFFSET_STORAGE_TOPIC: "customers-elastic-sink-offsets"
+#      CONNECT_STATUS_STORAGE_TOPIC: "customers-elastic-sink-status"
+#      CONNECT_REST_ADVERTISED_HOST_NAME: "customers-elastic-sink"
+#      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+#    volumes:
+#      - ./config/elastic:/sink:ro
+#      - ./config/schema:/schema:ro
+#    command: connect-standalone schema/json.properties sink/customers-sink.properties
+#    networks:
+#      - appnet
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.10
+    ports:
+     - "9200:9200"
+     - "9300:9300"
+    environment:
+#      http.host: "0.0.0.0"
+#      transport.host: "127.0.0.1"
+      xpack.security.enabled: "false"
+#    volumes:
+#      - elastic-data:/usr/share/elasticsearch/data
+    networks:
+      - appnet
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.6.10
+    depends_on:
+      - elastic
+    ports:
+     - "5601:5601"
+    environment:
+      SERVER_NAME: kibana.n5.dev
+      ELASTICSEARCH_URL: http://elastic:9200
+    networks:
+      - appnet
+#  logstash:
+#    image: docker.elastic.co/logstash/logstash:6.4.3
+#    depends_on:
+#      - elastic
+#    ports:
+#     - "5602:5602"
+#    environment:
+#       xpack.monitoring.elasticsearch.url: http://elastic:9200
+#       xpack.monitoring.enabled: "true"
+#       config.string: input { http_poller { urls => { n5api => "http://localhost:5000/health" integrationapi => "http://localhost:5002/health" } request_timeout => 60 schedule => { every => "1m" } codec => "json" metadata_target => "http_poller_metadata" type => "apistats" } file { path => [ "/logs/customers/customers_*.log", "/logs/customersRaw/customersRaw_*.log", "/logs/events/events_*.log", "/logs/historyRecords/historyRecords_*.log" ] start_position => "beginning" stat_interval => "30 s" discover_interval => 2 ignore_older => "1 d" close_older => "1 d" type => "logstats" } } filter { if [type] == "logstats" { grok { match => { "message" => "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}[T ]%{HOUR}:?%{MINUTE}(?::?%{SECOND})? %{ISO8601_TIMEZONE}? \[%{WORD:loglevel}\] %{WORD:event} - (%{DATA:resultobject}(?=:)(:) )?%{GREEDYDATA:message}" } overwrite => [ "message" ] } mutate { gsub => [ "message", "[\r]", "" ] } if [message] =~ "\A\{.+\}\z" { json { source => "message" target => "stats" } } } } output { elasticsearch { id => "elasticsearch_plugin" hosts => ["elastic:9200"] codec => "json" index => systemstats } stdout { id => "stdout_plugin" codec => rubydebug } }
+##       log.level: debug
+##       config.debug: "true"
+#    networks:
+#      - appnet
+#    volumes:
+#      - ./ConsoleAppConsumer/bin/Debug/netcoreapp2.0:/logs/customers:ro
+#      - ./CustomerRawConsumer/bin/Debug/netcoreapp2.0:/logs/customersRaw:ro
+#      - ./EventConsumer/bin/Debug/netcoreapp2.0:/logs/events:ro
+#      - ./HistoryConsumer/bin/Debug/netcoreapp2.0:/logs/historyRecords:ro
+  redis:
+    image: 'redis:latest'
+    environment:
+      # ALLOW_EMPTY_PASSWORD is recommended only for development.
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    labels:
+      kompose.service.type: nodeport
+    ports:
+      - '6379:6379'
+    volumes:
+      - 'redis_data:/redis'
+  streamsets:
+    image: 'streamsets/datacollector:3.3.0'
+    ports:
+      - '18630:18630'
+    volumes:
+      - 'sdc-data:/data'
+    environment:
+      - PACKAGES_TO_INSTALL=streamsets-datacollector-jdbc-lib
+    links:
+      - db_customers:db_customers
+volumes:
+  redis_data:
+    driver: local
+  sdc-data:
+    driver: local
+networks:
+  appnet:
+    driver: "bridge"
+    
