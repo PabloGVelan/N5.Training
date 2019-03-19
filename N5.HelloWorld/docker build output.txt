@@ -1,0 +1,116 @@
+Sending build context to Docker daemon   76.2MB
+Step 1/10 : FROM microsoft/dotnet:sdk AS build-env
+sdk: Pulling from microsoft/dotnet
+22dbe790f715: Pulling fs layer
+0250231711a0: Pulling fs layer
+6fba9447437b: Pulling fs layer
+c2b4d327b352: Pulling fs layer
+438f01663248: Pulling fs layer
+82a2ee32052d: Pulling fs layer
+f8d2acc893a4: Pulling fs layer
+c2b4d327b352: Waiting
+438f01663248: Waiting
+82a2ee32052d: Waiting
+f8d2acc893a4: Waiting
+6fba9447437b: Verifying Checksum
+6fba9447437b: Download complete
+0250231711a0: Download complete
+438f01663248: Verifying Checksum
+438f01663248: Download complete
+22dbe790f715: Verifying Checksum
+22dbe790f715: Download complete
+22dbe790f715: Pull complete
+0250231711a0: Pull complete
+6fba9447437b: Pull complete
+c2b4d327b352: Verifying Checksum
+c2b4d327b352: Download complete
+c2b4d327b352: Pull complete
+438f01663248: Pull complete
+82a2ee32052d: Verifying Checksum
+82a2ee32052d: Download complete
+82a2ee32052d: Pull complete
+f8d2acc893a4: Verifying Checksum
+f8d2acc893a4: Download complete
+f8d2acc893a4: Pull complete
+Digest: sha256:b3caea92e8163aafe7961cb22b9ab2056997981566c70ae6ab3c1cb0c4ff61e0
+Status: Downloaded newer image for microsoft/dotnet:sdk
+ ---> 81d80198a492
+Step 2/10 : WORKDIR /app
+ ---> Running in 3bdc70b31491
+Removing intermediate container 3bdc70b31491
+ ---> c20dcdff8dc1
+Step 3/10 : COPY *.csproj ./
+ ---> c1b861c09e8b
+Step 4/10 : RUN dotnet restore
+ ---> Running in a0f508664e5f
+  Restoring packages for /app/N5.HelloWorld.csproj...
+  Installing Microsoft.NETCore.DotNetAppHost 2.1.0.
+  Installing Microsoft.NETCore.DotNetHostResolver 2.1.0.
+  Installing Microsoft.NETCore.DotNetHostPolicy 2.1.0.
+  Installing Microsoft.NETCore.Targets 2.1.0.
+  Installing Microsoft.NETCore.Platforms 2.1.0.
+  Installing Microsoft.NETCore.App 2.1.0.
+  Generating MSBuild file /app/obj/N5.HelloWorld.csproj.nuget.g.props.
+  Generating MSBuild file /app/obj/N5.HelloWorld.csproj.nuget.g.targets.
+  Restore completed in 9.96 sec for /app/N5.HelloWorld.csproj.
+Removing intermediate container a0f508664e5f
+ ---> 88dd2de7b5e9
+Step 5/10 : COPY . ./
+ ---> d4456360ed3d
+Step 6/10 : RUN dotnet publish N5.HelloWorld.csproj -c Release -o out -r debian-x64
+ ---> Running in eb937d8be841
+Microsoft (R) Build Engine version 15.9.20+g88f5fadfbe for .NET Core
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Restoring packages for /app/N5.HelloWorld.csproj...
+  Installing Microsoft.NETCore.DotNetAppHost 2.1.8.
+  Installing Microsoft.NETCore.DotNetHostResolver 2.1.8.
+  Installing Microsoft.NETCore.DotNetHostPolicy 2.1.8.
+  Installing Microsoft.NETCore.Platforms 2.1.2.
+  Installing Microsoft.NETCore.App 2.1.8.
+  Installing runtime.linux-x64.Microsoft.NETCore.DotNetAppHost 2.1.8.
+  Installing runtime.linux-x64.Microsoft.NETCore.DotNetHostResolver 2.1.8.
+  Installing runtime.linux-x64.Microsoft.NETCore.DotNetHostPolicy 2.1.8.
+  Installing runtime.linux-x64.Microsoft.NETCore.App 2.1.8.
+  Generating MSBuild file /app/obj/N5.HelloWorld.csproj.nuget.g.props.
+  Generating MSBuild file /app/obj/N5.HelloWorld.csproj.nuget.g.targets.
+  Restore completed in 16.98 sec for /app/N5.HelloWorld.csproj.
+  N5.HelloWorld -> /app/bin/Release/netcoreapp2.1/debian-x64/N5.HelloWorld.dll
+  N5.HelloWorld -> /app/out/
+Removing intermediate container eb937d8be841
+ ---> 85a322a43d8a
+Step 7/10 : FROM microsoft/dotnet:aspnetcore-runtime
+aspnetcore-runtime: Pulling from microsoft/dotnet
+f7e2b70d04ae: Pulling fs layer
+8f464808d11f: Pulling fs layer
+646410f7b9f4: Pulling fs layer
+cce847d914c5: Pulling fs layer
+cce847d914c5: Waiting
+646410f7b9f4: Verifying Checksum
+646410f7b9f4: Download complete
+8f464808d11f: Verifying Checksum
+8f464808d11f: Download complete
+f7e2b70d04ae: Verifying Checksum
+f7e2b70d04ae: Download complete
+f7e2b70d04ae: Pull complete
+8f464808d11f: Pull complete
+646410f7b9f4: Pull complete
+cce847d914c5: Verifying Checksum
+cce847d914c5: Download complete
+cce847d914c5: Pull complete
+Digest: sha256:c86cd95e63565da682693b5a2f7931170666944b8df51de5ffaebb706a78f2a3
+Status: Downloaded newer image for microsoft/dotnet:aspnetcore-runtime
+ ---> 2f7531819f40
+Step 8/10 : WORKDIR /app
+ ---> Running in 899b90f991a0
+Removing intermediate container 899b90f991a0
+ ---> cf0dafc007f0
+Step 9/10 : COPY --from=build-env /app/out .
+ ---> 00d58012cdac
+Step 10/10 : ENTRYPOINT ["dotnet"]
+ ---> Running in 0e02f1e881e4
+Removing intermediate container 0e02f1e881e4
+ ---> 2e086d58d6d8
+Successfully built 2e086d58d6d8
+Successfully tagged hello-world:latest
+SECURITY WARNING: You are building a Docker image from Windows against a non-Windows Docker host. All files and directories added to build context will have '-rwxr-xr-x' permissions. It is recommended to double check and reset permissions for sensitive files and directories.
